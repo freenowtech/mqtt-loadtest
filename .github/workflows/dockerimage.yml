@@ -1,0 +1,19 @@
+name: Docker Image CI
+
+on:
+  push:
+    branches:    
+      - master
+
+jobs:
+
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v1
+    - name: Login to Docker Hub
+      run: docker login --username platformbuild --password ${{ secrets.DOCKER_HUB_PASS }}
+    - name: Build and Push the Docker image
+      run: make release_latest
