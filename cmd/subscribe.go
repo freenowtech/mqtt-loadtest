@@ -16,7 +16,8 @@ func init() {
 	subscribeCmd.Flags().StringVarP(&SubscribeConfig.URL, "url", "u", "", "URL to the MQTT broker instance")
 	subscribeCmd.MarkFlagRequired("url")
 	subscribeCmd.Flags().StringVarP(&SubscribeConfig.TopicPrefix, "topic-prefix", "p", "mqtt-loadtest", "Prefix which will form the topic name together with the index of the topic count ( `loadtest0`, `loadtest4`)")
-	subscribeCmd.Flags().UintVarP(&SubscribeConfig.TopicCount, "topic-count", "c", 1, "Count of topics to subscribe to (1 subscriber per topic)")
+	subscribeCmd.Flags().UintVarP(&SubscribeConfig.Subscriber, "subscriber", "s", 1, "Count of subscribers; One can subscribe to multiple topics")
+	subscribeCmd.Flags().UintVarP(&SubscribeConfig.TopicsPerSubscriber, "topics-per-subscriber", "t", 1, "Count of Topics a subscriber subscribes to")
 	subscribeCmd.Flags().UintVar(&SubscribeConfig.ProtocolVersion, "protocol-version", 4, "MQTT protocol version (3, 4(3.1.1) and 5 supported)")
 	subscribeCmd.Flags().StringVar(&SubscribeConfig.SubscriberPrefix, "subscriber-prefix", "mqtt-loadtest-sub", "Prefix which will form the subscriber client id together with the index of the subscriber count (`loadtest-subscriber0`, `loadtest-subscriber4`")
 	subscribeCmd.Flags().DurationVarP(&SubscribeConfig.ConnectDelay, "connect-delay", "d", time.Millisecond*200, "Delay before connecting the next subscriber for the initial connection build up")
@@ -47,13 +48,16 @@ var subscribeCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		log.Infof("Subscribing %v subscriber with prefix %v", SubscribeConfig.TopicCount, SubscribeConfig.TopicPrefix)
+		log.Infof("Subscribing %v subscriber with prefix %v", SubscribeConfig.Subscriber, SubscribeConfig.TopicPrefix)
 		log.Infof("Starting to listen to %v", SubscribeConfig.URL)
-		err = subs.Subscribe(SubscribeConfig.TopicPrefix, SubscribeConfig.TopicCount, SubscribeConfig.ConnectDelay)
+		err = subs.Subscribe(SubscribeConfig.TopicPrefix, SubscribeConfig.ConnectDelay, SubscribeConfig.TopicsPerSubscriber)
 		if err != nil {
 			return err
 		}
+		log.Infof("Starting to subscribe continuously")
+		subs.KeepSubscribing(SubscribeConfig.TopicsPerSubscriber)
+
 		log.Infof("Starting churning at rate 1 per %v", SubscribeConfig.ChurnRate)
-		return subs.Churn(SubscribeConfig.ChurnRate, SubscribeConfig.ConnectDelay)
+		return subs.Churn(SubscribeConfig.ChurnRate, SubscribeConfig.ConnectDelay, SubscribeConfig.TopicsPerSubscriber)
 	},
 }
